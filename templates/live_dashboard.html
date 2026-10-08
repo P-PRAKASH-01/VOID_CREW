@@ -1,71 +1,681 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live AI Dashboard</title>
+  <title>Live Monitoring Dashboard - DisasterWatch</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <!-- Leaflet CSS & JS for Interactive Sensor Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Chart.js for Live Trends -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="center" style="align-items: flex-start; padding-top: 50px;">
+<body>
 
-  <div class="dashboard-layout">
-    
-    <div class="form-box dash-col" style="padding: 20px;">
-      <h3 style="color: #38bdf8; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px;">
-        <i class="fas fa-terminal"></i> System Logs
-      </h3>
-      
-      <div id="logConsole" style="background: #0d141c; height: 350px; border-radius: 8px; padding: 15px; font-family: monospace; font-size: 13px; color: #a3e635; overflow-y: hidden; border: 1px solid #333; line-height: 1.8;">
-        Waiting for data...
+  <!-- Top Navigation Bar -->
+  {% include 'navbar.html' %}
+
+  <div class="dw-dashboard-container">
+    <!-- Left Navigation Sidebar -->
+    <aside class="dw-sidebar">
+      <div>
+        <div class="dw-sidebar-section-title">Navigation</div>
+        <ul class="dw-sidebar-menu">
+          <li>
+            <a href="/live_dashboard" class="dw-sidebar-link active">
+              <i class="fas fa-table-columns"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="#sensorMap" class="dw-sidebar-link">
+              <i class="fas fa-satellite-dish"></i>
+              <span>Live Sensors</span>
+            </a>
+          </li>
+          <li>
+            <a href="#logsConsoleSection" class="dw-sidebar-link">
+              <i class="fas fa-terminal"></i>
+              <span>Prediction Logs</span>
+            </a>
+          </li>
+          <li>
+            <a href="#alertsSection" class="dw-sidebar-link">
+              <i class="fas fa-bell"></i>
+              <span>Alert History</span>
+            </a>
+          </li>
+          <li>
+            {% if session.get('is_admin') %}
+              <a href="/admin" class="dw-sidebar-link" style="color: #fb7185;">
+                <i class="fas fa-shield-halved"></i>
+                <span>Admin Console</span>
+              </a>
+            {% else %}
+              <a href="/news" class="dw-sidebar-link">
+                <i class="fas fa-newspaper"></i>
+                <span>News & Advisories</span>
+              </a>
+            {% endif %}
+          </li>
+          {% if session.get('is_admin') or session.get('is_user') %}
+            <li>
+              <a href="/logout" class="dw-sidebar-link" style="color: #fb7185;">
+                <i class="fas fa-arrow-right-from-bracket"></i>
+                <span>Logout</span>
+              </a>
+            </li>
+          {% else %}
+            <li>
+              <a href="/login" class="dw-sidebar-link" style="color: #38bdf8;">
+                <i class="fas fa-arrow-right-to-bracket"></i>
+                <span>Login</span>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
       </div>
-    </div>
+    </aside>
 
-    <div class="form-box dash-col" style="padding: 20px; text-align: center;">
-      <h3 class="graph-title">
-        <span>Select Parameter to Graph:</span>
-        <select id="graphParam" style="padding: 5px 10px; background: #222; color: #fff; border: 1px solid #38bdf8; border-radius: 5px;">
-          <option value="Temperature">Temperature</option>
-          <option value="Humidity">Humidity</option>
-          <option value="Wind">Wind Speed</option>
-        </select>
-      </h3>
-      
-      <img id="pythonGraph" src="" alt="Live Graph Loading..." style="width: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-      
-      <button class="btn" onclick="window.location.href='/'" style="margin-top: 25px;">Back to Home</button>
-    </div>
+    <!-- Main Content Area -->
+    <main class="dw-main-content">
+      <!-- Breadcrumb / Header with Live Clock -->
+      <div class="dw-page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h1 class="dw-page-title">Live Monitoring Dashboard</h1>
+          <p class="dw-page-subtitle">Real-time environmental telemetry and automated disaster detection</p>
+        </div>
 
+        <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-light); padding: 8px 18px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #fff;">
+          <i class="far fa-clock" style="color: #38bdf8;"></i>
+          <span id="liveClock" style="font-family: var(--font-mono); font-weight: 500;">Loading time...</span>
+        </div>
+      </div>
+
+      <!-- Top 4 Real-time Metric Cards -->
+      <div class="dw-live-stats-bar">
+        <!-- Temperature -->
+        <div class="dw-live-stat-card">
+          <div class="dw-live-stat-left">
+            <i class="fas fa-temperature-half dw-live-stat-icon" style="color: #f43f5e;"></i>
+            <div>
+              <div class="dw-live-stat-val" id="dispTemp">31.8 °C</div>
+              <div class="dw-live-stat-lbl">Temperature</div>
+            </div>
+          </div>
+          <span class="dw-delta-tag up" id="deltaTemp">+1.2 °C</span>
+        </div>
+
+        <!-- Humidity -->
+        <div class="dw-live-stat-card">
+          <div class="dw-live-stat-left">
+            <i class="fas fa-droplet dw-live-stat-icon" style="color: #0ea5e9;"></i>
+            <div>
+              <div class="dw-live-stat-val" id="dispHum">67 %</div>
+              <div class="dw-live-stat-lbl">Humidity</div>
+            </div>
+          </div>
+          <span class="dw-delta-tag down" id="deltaHum">-3 %</span>
+        </div>
+
+        <!-- Wind Speed -->
+        <div class="dw-live-stat-card">
+          <div class="dw-live-stat-left">
+            <i class="fas fa-wind dw-live-stat-icon" style="color: #34d399;"></i>
+            <div>
+              <div class="dw-live-stat-val" id="dispWind">14 km/h</div>
+              <div class="dw-live-stat-lbl">Wind Speed</div>
+            </div>
+          </div>
+          <span class="dw-delta-tag up" id="deltaWind">+2 km/h</span>
+        </div>
+
+        <!-- Disaster Status -->
+        <div class="dw-live-stat-card">
+          <div class="dw-live-stat-left">
+            <i class="fas fa-shield-halved dw-live-stat-icon" id="dispStatusIcon" style="color: #10b981;"></i>
+            <div>
+              <div class="dw-live-stat-val" id="dispStatusText" style="color: #10b981;">Normal</div>
+              <div class="dw-live-stat-lbl" id="dispStatusSub">No immediate risk</div>
+            </div>
+          </div>
+          <span class="dw-dot normal" id="dispStatusDot" style="width: 12px; height: 12px;"></span>
+        </div>
+      </div>
+
+      <!-- Map & Environmental Trends Grid -->
+      <div class="dw-map-trends-grid">
+        <!-- Leaflet Map -->
+        <div class="dw-map-box">
+          <h3>
+            <span><i class="fas fa-map-location-dot" style="color: #38bdf8; margin-right: 8px;"></i> Live Sensor Locations</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 8px; border-radius: 4px; font-weight: 600;"><i class="fab fa-google"></i> Real Map Engine</span>
+              <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">5 Stations</span>
+            </div>
+          </h3>
+          <div id="sensorMap"></div>
+          <div class="dw-map-legend">
+            <div class="dw-legend-item"><span class="dw-dot normal"></span> Normal</div>
+            <div class="dw-legend-item"><span class="dw-dot watch"></span> Watch</div>
+            <div class="dw-legend-item"><span class="dw-dot warning"></span> Warning</div>
+            <div class="dw-legend-item"><span class="dw-dot danger"></span> Danger</div>
+          </div>
+        </div>
+
+        <!-- Live Environmental Trends Chart -->
+        <div class="dw-chart-box">
+          <div class="dw-chart-header">
+            <h3><i class="fas fa-chart-line" style="color: #38bdf8; margin-right: 8px;"></i> Live Environmental Trends</h3>
+            <select id="trendTimeRange" style="background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 10px; font-size: 12px; outline: none;">
+              <option>Last 1 Hour</option>
+              <option>Last 6 Hours</option>
+              <option>Last 24 Hours</option>
+            </select>
+          </div>
+          <div class="dw-chart-canvas-wrap">
+            <canvas id="liveTrendsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Risk Levels (Chennai) -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div class="dw-metrics-title" style="margin-bottom: 0;">Current Risk Levels (Chennai)</div>
+        <button class="btn-sample" onclick="refreshDashboard()" style="display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fas fa-rotate"></i> Refresh
+        </button>
+      </div>
+
+      <div class="dw-risk-summary-grid" style="margin-bottom: 24px;">
+        <div class="dw-risk-card">
+          <i class="fas fa-water dw-risk-card-icon" style="color: #38bdf8;"></i>
+          <div class="dw-risk-card-title">Flood</div>
+          <span class="badge-risk badge-low">Low</span>
+          <div class="dw-risk-note">No significant risk</div>
+        </div>
+
+        <div class="dw-risk-card">
+          <i class="fas fa-fire dw-risk-card-icon" style="color: #fb923c;"></i>
+          <div class="dw-risk-card-title">Wildfire</div>
+          <span class="badge-risk badge-medium">Medium</span>
+          <div class="dw-risk-note">High temperature increases risk</div>
+        </div>
+
+        <div class="dw-risk-card">
+          <i class="fas fa-tornado dw-risk-card-icon" style="color: #a78bfa;"></i>
+          <div class="dw-risk-card-title">Cyclone</div>
+          <span class="badge-risk badge-low">Low</span>
+          <div class="dw-risk-note">No cyclone formation</div>
+        </div>
+
+        <div class="dw-risk-card">
+          <i class="fas fa-mountain dw-risk-card-icon" style="color: #fbbf24;"></i>
+          <div class="dw-risk-card-title">Earthquake</div>
+          <span class="badge-risk badge-low">Low</span>
+          <div class="dw-risk-note">No unusual activity</div>
+        </div>
+
+        <div class="dw-risk-card">
+          <i class="fas fa-hill-rockslide dw-risk-card-icon" style="color: #34d399;"></i>
+          <div class="dw-risk-card-title">Landslide</div>
+          <span class="badge-risk badge-medium">Medium</span>
+          <div class="dw-risk-note">Moderate soil saturation</div>
+        </div>
+      </div>
+
+      <!-- Automated Mitigation & Preparedness Center -->
+      <div class="dw-metrics-title" id="mitigationSection" style="margin-top: 12px; display: none;">
+        <i class="fas fa-shield-virus" style="color: #10b981; margin-right: 8px;"></i>
+        Automated Disaster Mitigation & Civil Protection Plan
+      </div>
+      
+      <div class="dw-mitigation-card" id="liveMitigationCard" style="display: none; margin-bottom: 24px;">
+        <!-- Container for dynamically injected mitigation content -->
+      </div>
+
+      <!-- Recent Alerts & Emergency Communication Grid -->
+      <div class="dw-alerts-comm-grid" id="alertsSection">
+        <!-- Recent Alerts -->
+        <div class="dw-recent-alerts-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h4 style="font-size: 15px; font-weight: 700; color: #fff; margin: 0;">Recent Alerts</h4>
+            <a href="/news" class="dw-link-viewall">View All</a>
+          </div>
+
+          <div class="dw-alerts-list">
+            <div class="dw-alert-item">
+              <div class="dw-alert-left">
+                <span class="dw-dot watch"></span>
+                <span>High temperature detected in Madurai</span>
+              </div>
+              <span class="dw-alert-time">2 hours ago</span>
+            </div>
+
+            <div class="dw-alert-item">
+              <div class="dw-alert-left">
+                <span class="dw-dot normal"></span>
+                <span>Moderate rainfall in Coimbatore</span>
+              </div>
+              <span class="dw-alert-time">5 hours ago</span>
+            </div>
+
+            <div class="dw-alert-item">
+              <div class="dw-alert-left">
+                <span class="dw-dot normal"></span>
+                <span>All systems normal</span>
+              </div>
+              <span class="dw-alert-time">8 hours ago</span>
+            </div>
+
+            <div class="dw-alert-item">
+              <div class="dw-alert-left">
+                <span class="dw-dot danger"></span>
+                <span>Strong wind detected in Chennai</span>
+              </div>
+              <span class="dw-alert-time">12 hours ago</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Communication Card -->
+        {% if session.get('is_admin') %}
+          <div class="dw-comm-card">
+            <h4>
+              <i class="fab fa-whatsapp" style="color: #25d366; font-size: 18px;"></i>
+              Operator Emergency Broadcast
+            </h4>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+              Admin Control: Dispatch emergency broadcast alerts directly to registered sector contacts.
+            </p>
+
+            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 6px; font-weight: 500;">Message</label>
+            <textarea id="emergencyMessage" class="dw-comm-textarea" rows="3">⚠️ Emergency Alert!
+High risk conditions detected in your sector. Please take necessary precautions and follow evacuation directives.</textarea>
+
+            <button type="button" class="btn-whatsapp" onclick="triggerSosBroadcast()">
+              <i class="fas fa-paper-plane"></i> Send to All Contacts
+            </button>
+          </div>
+        {% else %}
+          <div class="dw-comm-card">
+            <h4>
+              <i class="fab fa-whatsapp" style="color: #25d366; font-size: 18px;"></i>
+              Citizen Emergency SOS
+            </h4>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+              Direct citizen lifeline: Send an instant emergency alert with your current coordinates to rescue helplines or family.
+            </p>
+
+            <a href="https://wa.me/?text=🚨%20DISASTERWATCH%20URGENT%20SOS%3A%20Critical%20disaster%20conditions%20detected%20in%20my%20sector.%20Please%20send%20assistance." target="_blank" class="btn-whatsapp" style="text-decoration: none; justify-content: center; width: 100%;">
+              <i class="fab fa-whatsapp"></i> Send Personal SOS Alert
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Real-Time System Log Stream -->
+      <div class="dw-chart-box" id="logsConsoleSection" style="margin-bottom: 24px;">
+        <h3 style="font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-terminal" style="color: #38bdf8;"></i> AI Telemetry & Neon Database Stream
+        </h3>
+        <div id="logConsole" style="background: #080d15; min-height: 180px; max-height: 260px; overflow-y: auto; border-radius: var(--radius-sm); padding: 16px; font-family: var(--font-mono); font-size: 12.5px; color: #a3e635; border: 1px solid var(--border-light); line-height: 1.8;">
+          Waiting for telemetry stream...
+        </div>
+      </div>
+    </main>
   </div>
 
+  <!-- Bottom Status Bar -->
+  <footer class="dw-bottom-status-bar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <i class="fas fa-shield-halved" style="color: #10b981;"></i>
+      <span>AI Disaster Management System — Building a Safer and More Resilient Tomorrow.</span>
+    </div>
+
+    <div class="dw-status-badges-group">
+      <div class="dw-status-badge">
+        <i class="fas fa-tower-broadcast"></i>
+        <span><strong>5</strong> Active Sensors</span>
+      </div>
+      <div class="dw-status-badge">
+        <i class="fas fa-server"></i>
+        <span><strong>99.9%</strong> Uptime</span>
+      </div>
+      <div class="dw-status-badge">
+        <i class="fas fa-bell"></i>
+        <span><strong>0</strong> Active Alerts</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
   <script>
+    // 1. Live Clock
+    function updateClock() {
+      const now = new Date();
+      const options = { 
+        day: '2-digit', month: 'short', year: 'numeric', 
+        hour: '2-digit', minute: '2-digit', second: '2-digit', 
+        hour12: true 
+      };
+      document.getElementById('liveClock').innerText = now.toLocaleString('en-US', options);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 2. Real Google Maps & Multi-Basemap Intelligence
+    const googleRoadmap = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      attribution: '&copy; Google Maps',
+      maxZoom: 20
+    });
+
+    const googleSatellite = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+      attribution: '&copy; Google Satellite Imagery',
+      maxZoom: 20
+    });
+
+    const googleTerrain = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+      attribution: '&copy; Google Terrain',
+      maxZoom: 20
+    });
+
+    const osmStandard = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    });
+
+    const darkTactical = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; CARTO &copy; OpenStreetMap',
+      maxZoom: 19
+    });
+
+    const map = L.map('sensorMap', {
+      center: [11.8, 78.5],
+      zoom: 6.5,
+      zoomControl: true,
+      layers: [googleRoadmap] // Defaults to Real Google Maps
+    });
+
+    const baseMaps = {
+      "🗺️ Google Maps": googleRoadmap,
+      "🛰️ Google Satellite": googleSatellite,
+      "⛰️ Google Terrain": googleTerrain,
+      "🌐 OpenStreetMap": osmStandard,
+      "🌑 Dark Tactical": darkTactical
+    };
+
+    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+    const sensorStations = [
+      { name: "Chennai Station #1", coords: [13.0827, 80.2707], status: "normal", temp: "31.8°C", wind: "14 km/h" },
+      { name: "Bengaluru Central", coords: [12.9716, 77.5946], status: "normal", temp: "26.4°C", wind: "9 km/h" },
+      { name: "Madurai South", coords: [9.9252, 78.1198], status: "watch", temp: "35.2°C", wind: "18 km/h" },
+      { name: "Coimbatore Hills", coords: [11.0168, 76.9558], status: "warning", temp: "28.1°C", wind: "22 km/h" },
+      { name: "Salem Valley", coords: [11.6643, 78.1460], status: "normal", temp: "29.6°C", wind: "11 km/h" }
+    ];
+
+    const markerColors = {
+      normal: "#10b981",
+      watch: "#f59e0b",
+      warning: "#f97316",
+      danger: "#ef4444"
+    };
+
+    sensorStations.forEach(st => {
+      const marker = L.circleMarker(st.coords, {
+        radius: 8,
+        fillColor: markerColors[st.status],
+        color: "#fff",
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.9
+      }).addTo(map);
+
+      marker.bindPopup(`
+        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.5;">
+          <strong>${st.name}</strong><br>
+          Status: <span style="text-transform: capitalize; color:${markerColors[st.status]}; font-weight: bold;">${st.status}</span><br>
+          Temp: ${st.temp} | Wind: ${st.wind}
+        </div>
+      `);
+    });
+
+    // 3. Multi-line Live Trends Chart (Chart.js)
+    const trendCtx = document.getElementById('liveTrendsChart').getContext('2d');
+    const trendLabels = ["14:30", "14:40", "14:50", "15:00", "15:10", "15:20", "15:30"];
+    
+    let liveTrendsChart = new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: [30.5, 31.0, 31.2, 31.5, 31.6, 31.7, 31.8],
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.05)',
+            tension: 0.35,
+            pointRadius: 3,
+            borderWidth: 2
+          },
+          {
+            label: 'Humidity (%)',
+            data: [72, 70, 69, 68, 68, 67, 67],
+            borderColor: '#0ea5e9',
+            backgroundColor: 'rgba(14, 165, 233, 0.05)',
+            tension: 0.35,
+            pointRadius: 3,
+            borderWidth: 2
+          },
+          {
+            label: 'Wind Speed (km/h)',
+            data: [11, 12, 12, 13, 13, 14, 14],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+            tension: 0.35,
+            pointRadius: 3,
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 }
+          },
+          tooltip: {
+            backgroundColor: '#0d1421',
+            titleColor: '#fff',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: '#94a3b8', font: { size: 10.5 } }
+          },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: '#94a3b8', font: { size: 10.5 } }
+          }
+        }
+      }
+    });
+
+    // 4. Polling Live Telemetry from /update_logic
+    let currentAlertMsg = "";
+    let isModalOpen = false;
+
     function refreshDashboard() {
-      // 1. Tell Python to update the logic and get the logs
       fetch('/update_logic')
         .then(response => response.json())
         .then(data => {
-          // Update the Log Console
           const logDiv = document.getElementById('logConsole');
-          logDiv.innerHTML = data.logs.join('<br>');
-          
-          // Flash the screen red if an SOS happens!
-          if(data.disaster) {
-             document.body.style.boxShadow = "inset 0 0 150px rgba(255, 0, 0, 0.5)";
-          } else {
-             document.body.style.boxShadow = "none";
+          if (data.logs && data.logs.length) {
+            logDiv.innerHTML = data.logs.join('<br>');
           }
-        });
 
-      // 2. Refresh the Python Graph Image based on the dropdown
-      const param = document.getElementById('graphParam').value;
-      const graphImg = document.getElementById('pythonGraph');
-      // We add a random number to the end of the URL so the browser doesn't cache the old image
-      graphImg.src = "/get_graph/" + param + "?t=" + new Date().getTime();
+          if (data.disaster) {
+            document.getElementById('dispStatusText').innerText = 'CRITICAL ALERT';
+            document.getElementById('dispStatusText').style.color = '#ef4444';
+            document.getElementById('dispStatusSub').innerText = 'Hazard conditions detected!';
+            document.getElementById('dispStatusIcon').className = 'fas fa-triangle-exclamation dw-live-stat-icon';
+            document.getElementById('dispStatusIcon').style.color = '#ef4444';
+            document.getElementById('dispStatusDot').className = 'dw-dot danger';
+            document.body.style.boxShadow = "inset 0 0 100px rgba(239, 68, 68, 0.35)";
+
+            // Check if explicit permission is required before sending WhatsApp alert (Admin/Operator only)
+            {% if session.get('is_admin') %}
+            if (data.needs_permission && !isModalOpen) {
+              isModalOpen = true;
+              currentAlertMsg = data.alert_msg || "Emergency alert detected";
+              document.getElementById('modalAlertMsg').innerText = currentAlertMsg;
+              document.getElementById('sosPermissionModal').style.display = 'flex';
+            }
+            {% endif %}
+          } else {
+            document.getElementById('dispStatusText').innerText = 'Normal';
+            document.getElementById('dispStatusText').style.color = '#10b981';
+            document.getElementById('dispStatusSub').innerText = 'No immediate risk';
+            document.getElementById('dispStatusIcon').className = 'fas fa-shield-halved dw-live-stat-icon';
+            document.getElementById('dispStatusIcon').style.color = '#10b981';
+            document.getElementById('dispStatusDot').className = 'dw-dot normal';
+            document.body.style.boxShadow = "none";
+          }
+
+          // Populate Mitigation Plan
+          if (data.mitigation_plan) {
+            const plan = data.mitigation_plan;
+            document.getElementById('mitigationSection').style.display = 'block';
+            document.getElementById('liveMitigationCard').style.display = 'block';
+            
+            let html = `
+              <div class="dw-mitigation-banner">
+                <div class="dw-mitigation-banner-left">
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span class="dw-tier-badge" style="background: ${plan.tier_color}22; border: 1px solid ${plan.tier_color}; color: ${plan.tier_color};">
+                      <i class="fas fa-shield-halved"></i> ${plan.alert_tier}
+                    </span>
+                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">
+                      <i class="fas fa-clock" style="color: #38bdf8; margin-right: 4px;"></i> ${plan.urgency_label}
+                    </span>
+                  </div>
+                  <h3 class="dw-banner-title">${plan.plan_title}</h3>
+                </div>
+                <div class="dw-priority-score-box">
+                  <div class="dw-priority-score-num" style="color: ${plan.tier_color};">${plan.priority_score}<span style="font-size: 14px; color: var(--text-muted);">/100</span></div>
+                  <div class="dw-priority-score-label">Priority Urgency Index</div>
+                </div>
+              </div>
+              <div class="dw-mitigation-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <!-- 1. Engineering -->
+                <div class="dw-mit-card">
+                  <div class="dw-mit-card-header">
+                    <div class="dw-mit-card-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                      <i class="fas fa-trowel-bricks"></i>
+                    </div>
+                    <h4 class="dw-mit-card-title">Civil Engineering & Perimeter Countermeasures</h4>
+                  </div>
+                  ${plan.engineering_actions.map(a => `
+                    <div class="dw-mit-item">
+                      <div class="dw-mit-item-title"><i class="fas ${a.icon}" style="color: #38bdf8; font-size: 12px;"></i> ${a.title}</div>
+                      <p class="dw-mit-item-detail">${a.detail}</p>
+                    </div>
+                  `).join('')}
+                </div>
+                <!-- 2. Evacuation -->
+                <div class="dw-mit-card">
+                  <div class="dw-mit-card-header">
+                    <div class="dw-mit-card-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                      <i class="fas fa-person-walking-dashed-line-arrow-right"></i>
+                    </div>
+                    <h4 class="dw-mit-card-title">Evacuation & Safe Shelter Protocol</h4>
+                  </div>
+                  ${plan.evacuation_protocols.map(e => `
+                    <div class="dw-mit-item">
+                      <div class="dw-mit-item-title"><i class="fas fa-route" style="color: #10b981; font-size: 12px;"></i> ${e.title}</div>
+                      <p class="dw-mit-item-detail">${e.detail}</p>
+                      <span class="dw-mit-route-tag"><i class="fas fa-arrow-turn-up" style="transform: rotate(90deg); margin-right: 4px;"></i> ${e.route}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            document.getElementById('liveMitigationCard').innerHTML = html;
+          }
+        })
+        .catch(err => console.log('Telemetry fetch error:', err));
     }
 
-    // Run this every 3 seconds
     setInterval(refreshDashboard, 3000);
-    // Run it immediately once on load
     refreshDashboard();
+
+    // 5. Explicit Permission Action Handlers
+    function authorizeSosBroadcast() {
+      document.getElementById('sosPermissionModal').style.display = 'none';
+      isModalOpen = false;
+
+      fetch('/authorize_send_sos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: currentAlertMsg })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert("✅ Authorization Granted! Automated WhatsApp broadcast initiated to target contacts.");
+      })
+      .catch(err => console.error(err));
+    }
+
+    function denySosBroadcast() {
+      document.getElementById('sosPermissionModal').style.display = 'none';
+      isModalOpen = false;
+      fetch('/dismiss_sos_alert', { method: 'POST' });
+    }
+
+    // 6. WhatsApp SOS Broadcast Trigger (Manual with Confirmation)
+    function triggerSosBroadcast() {
+      const msg = document.getElementById('emergencyMessage').value;
+      if (!confirm("⚠️ Confirm Emergency SOS Broadcast\n\nDo you grant permission to open WhatsApp and send this emergency alert to registered contacts?")) {
+        return;
+      }
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
   </script>
+
+  <!-- Emergency Permission Modal (Admin Only) -->
+  {% if session.get('is_admin') %}
+  <div id="sosPermissionModal" class="dw-modal-overlay" style="display: none;">
+    <div class="dw-modal-box">
+      <div class="dw-modal-header">
+        <i class="fas fa-triangle-exclamation" style="color: #ef4444; font-size: 26px;"></i>
+        <h3>Operator Authorization Required</h3>
+      </div>
+      <p style="color: #cbd5e1; font-size: 13.5px; line-height: 1.6; margin: 12px 0;">
+        <strong>Critical disaster threshold detected by AI!</strong><br>
+        Do you grant permission to broadcast emergency WhatsApp SOS messages to registered emergency contacts?
+      </p>
+      <div id="modalAlertMsg" style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-light); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #fb7185; margin-bottom: 18px; white-space: pre-line;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn-dismiss" onclick="denySosBroadcast()">
+          <i class="fas fa-xmark"></i> Decline / Dismiss
+        </button>
+        <button type="button" class="btn-authorize" onclick="authorizeSosBroadcast()">
+          <i class="fab fa-whatsapp"></i> Authorize & Broadcast
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
 </body>
 </html>

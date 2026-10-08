@@ -1,42 +1,124 @@
-<!-- ================= earthquake.html ================= -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Earthquake</title>
+  <title>Earthquake Risk Predictor - DisasterWatch</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
-<body class="center">
+<body>
 
-<div class="form-box {% if theme %}{{ theme }}{% endif %}">
-    <div class="form-title">🌍 Earthquake Risk Predictor</div>
+  <!-- Top Navigation Bar -->
+  {% include 'navbar.html' %}
 
-    <form action="/predict_earthquake" method="POST">
-      <div class="form-group"><label>Latitude</label><input type="number" name="latitude" required step="any"></div>
-      <div class="form-group"><label>Longitude</label><input type="number" name="longitude" required step="any"></div>
-      <div class="form-group"><label>Depth (km)</label><input type="number" name="depth_km" required step="any"></div>
-      <div class="form-group"><label>Magnitude</label><input type="number" name="magnitude" required step="any"></div>
-      <div class="form-group"><label>Fault Distance (km)</label><input type="number" name="fault_distance_km" required step="any"></div>
-      <div class="form-group"><label>Seismic Frequency</label><input type="number" name="seismic_frequency" required step="any"></div>
-      <div class="form-group"><label>Micro Tremors</label><input type="number" name="micro_tremors" required step="any"></div>
-      <div class="form-group"><label>Plate Movement (mm/yr)</label><input type="number" name="plate_movement" required step="any"></div>
-      <button type="submit" class="btn">Predict Earthquake Risk</button>
-    </form>
-
-    {% if result %}
-      <h3 style="margin-top: 20px; text-align: center; font-weight: bold; color: {% if 'Safe' not in result %}#fb7185{% else %}#a3e635{% endif %};">{{ result }}</h3>
-
-      <div class="reason-box {% if 'Safe' in result %}safe{% endif %}">
-        <h4><i class="fas fa-microchip"></i> AI Factor Analysis:</h4>
-        <ul>
-          {% for reason in reasons %}<li>{{ reason }}</li>{% endfor %}
-        </ul>
+  <div class="dw-form-container">
+    <div class="dw-form-card">
+      <div class="dw-form-header">
+        <div class="dw-form-header-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+          <i class="fas fa-mountain"></i>
+        </div>
+        <h2>Seismic & Fault Risk Predictor</h2>
+        <p>Evaluates tectonic slip, fault line proximity, micro-tremor clusters, and focal depth.</p>
       </div>
-    {% endif %}
 
-    <div style="text-align: center; margin-top: 20px; cursor: pointer; color: #cbd5f5; font-size: 14px;" onclick="window.location.href='/'">⬅ Back to Home</div>
+      <!-- Quick Sample Buttons -->
+      <div class="dw-sample-buttons">
+        <button type="button" class="btn-sample" onclick="loadSample(13.08, 80.27, 45, 2.8, 180, 5, 2, 8)">
+          <i class="fas fa-shield-halved" style="color: #10b981;"></i> Load Stable Crust Data
+        </button>
+        <button type="button" class="btn-sample" onclick="loadSample(35.67, 139.65, 12, 6.8, 18, 38, 25, 45)">
+          <i class="fas fa-triangle-exclamation" style="color: #f43f5e;"></i> Load High Seismic Danger
+        </button>
+      </div>
+
+      <form action="/predict_earthquake" method="POST">
+        <div class="dw-form-grid">
+          <div class="dw-form-group">
+            <label><i class="fas fa-map-pin" style="color: #38bdf8; margin-right: 6px;"></i> Latitude</label>
+            <input type="number" id="inpLat" name="latitude" required step="any" class="dw-form-input" placeholder="e.g. 13.08">
+          </div>
+
+          <div class="dw-form-group">
+            <label><i class="fas fa-compass" style="color: #38bdf8; margin-right: 6px;"></i> Longitude</label>
+            <input type="number" id="inpLon" name="longitude" required step="any" class="dw-form-input" placeholder="e.g. 80.27">
+          </div>
+
+          <div class="dw-form-group">
+            <label><i class="fas fa-arrow-down" style="color: #60a5fa; margin-right: 6px;"></i> Focal Depth (km)</label>
+            <input type="number" id="inpDepth" name="depth_km" required step="any" class="dw-form-input" placeholder="e.g. 40">
+          </div>
+
+          <div class="dw-form-group">
+            <label><i class="fas fa-chart-line" style="color: #f43f5e; margin-right: 6px;"></i> Magnitude</label>
+            <input type="number" id="inpMag" name="magnitude" required step="any" class="dw-form-input" placeholder="e.g. 3.5">
+          </div>
+
+          <div class="dw-form-group">
+            <label><i class="fas fa-route" style="color: #a78bfa; margin-right: 6px;"></i> Fault Distance (km)</label>
+            <input type="number" id="inpFault" name="fault_distance_km" required step="any" class="dw-form-input" placeholder="e.g. 95">
+          </div>
+
+          <div class="dw-form-group">
+            <label><i class="fas fa-wave-square" style="color: #fb923c; margin-right: 6px;"></i> Seismic Frequency</label>
+            <input type="number" id="inpFreq" name="seismic_frequency" required step="any" class="dw-form-input" placeholder="e.g. 10">
+          </div>
+
+          <div class="dw-form-group">
+            <label><i class="fas fa-vibrate" style="color: #fbbf24; margin-right: 6px;"></i> Micro Tremors</label>
+            <input type="number" id="inpTremors" name="micro_tremors" required step="any" class="dw-form-input" placeholder="e.g. 3">
+          </div>
+
+          <div class="dw-form-group">
+            <label><i class="fas fa-arrows-split-up-and-left" style="color: #34d399; margin-right: 6px;"></i> Plate Movement (mm/yr)</label>
+            <input type="number" id="inpPlate" name="plate_movement" required step="any" class="dw-form-input" placeholder="e.g. 15">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 13px; font-size: 15px;">
+          <i class="fas fa-bolt"></i> Predict Earthquake Risk
+        </button>
+      </form>
+
+      {% if result %}
+        <div class="dw-ai-analysis-result {{ theme }}">
+          <div class="dw-result-title" style="color: {% if 'HIGH' in result or 'MEDIUM' in result %}#fb7185{% else %}#34d399{% endif %};">
+            {{ result }}
+          </div>
+
+          <div class="dw-result-reasons">
+            <h5><i class="fas fa-microchip" style="color: #38bdf8;"></i> AI Factor Analysis:</h5>
+            <ul>
+              {% for reason in reasons %}
+                <li>{{ reason }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      {% endif %}
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px;">
+        <a href="/" style="font-size: 13.5px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+        <a href="/all-in-one" style="font-size: 13.5px; color: #38bdf8; display: inline-flex; align-items: center; gap: 6px;">
+          Run All-in-One Predictor <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+    </div>
   </div>
 
+  <script>
+    function loadSample(lat, lon, depth, mag, fault, freq, tremors, plate) {
+      document.getElementById('inpLat').value = lat;
+      document.getElementById('inpLon').value = lon;
+      document.getElementById('inpDepth').value = depth;
+      document.getElementById('inpMag').value = mag;
+      document.getElementById('inpFault').value = fault;
+      document.getElementById('inpFreq').value = freq;
+      document.getElementById('inpTremors').value = tremors;
+      document.getElementById('inpPlate').value = plate;
+    }
+  </script>
 </body>
 </html>
-

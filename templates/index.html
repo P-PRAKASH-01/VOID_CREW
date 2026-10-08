@@ -1,94 +1,286 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Disaster Management System</title>
+  <title>DisasterWatch - AI-Powered Disaster Management System</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+<body>
 
-<body class="center">
+  <!-- Top Navigation Bar -->
+  {% include 'navbar.html' %}
 
-  <div class="top-auth">
-    {% if session.get('is_admin') %}
-      <span style="color: #a3e635; margin-right: 15px; font-weight: bold;">
-        <i class="fas fa-user-check"></i> Admin Mode Active
-      </span>
-      <a href="/logout" class="btn" style="padding: 8px 15px; font-size: 14px; background: rgba(251, 113, 133, 0.2); border: 1px solid #fb7185; color: #fb7185; text-decoration: none;">
-        Logout
-      </a>
-    {% else %}
-      <a href="/login" class="btn" style="padding: 8px 15px; font-size: 14px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; text-decoration: none;">
-        <i class="fas fa-user-shield"></i> Admin Login
-      </a>
-    {% endif %}
-  </div>
+  <!-- Hero Section -->
+  <section class="dw-hero">
+    <div class="dw-hero-container">
+      <div class="dw-hero-content">
+        <div class="dw-hero-tag">
+          <i class="fas fa-shield-halved"></i> A Safer Tomorrow
+        </div>
+        <h1 class="dw-hero-title">AI-Powered Disaster Management System</h1>
+        <p class="dw-hero-desc">
+          Predicts, monitors, and alerts across 5 hazard types in real time using satellite data, atmospheric telemetry, and machine learning models.
+        </p>
+        <div class="dw-hero-actions">
+          <a href="/all-in-one" class="btn-primary">
+            Get Risk Report <i class="fas fa-arrow-right"></i>
+          </a>
+          <a href="#hazards" class="btn-glass">
+            Learn More
+          </a>
+        </div>
+      </div>
 
-  <div class="home-container">
-    <div class="home-title">Disaster Management System</div>
-
-    <div class="grid">
-      <a class="card" href="{{ url_for('flood_page') }}">
-        <i class="fas fa-water"></i>
-        <div>Flood</div>
-      </a>
-
-      <a class="card" href="{{ url_for('earthquake_page') }}">
-        <i class="fas fa-house-damage"></i>
-        <div>Earthquake</div>
-      </a>
-
-      <a class="card" href="{{ url_for('cyclone_page') }}">
-        <i class="fas fa-wind"></i>
-        <div>Cyclone</div>
-      </a>
-
-      <a class="card" href="{{ url_for('wildfire_page') }}">
-        <i class="fas fa-fire"></i>
-        <div>Wildfire</div>
-      </a>
-
-      <a class="card" href="{{ url_for('landslide_page') }}">
-        <i class="fas fa-mountain"></i>
-        <div>Landslide</div>
-      </a>
-
-      <a class="card" href="{{ url_for('all_in_one_page') }}">
-        <i class="fas fa-globe-asia"></i>
-        <div>All-in-One</div>
-      </a>
-
-      <a class="card-wide" href="/news">
-        <i class="fas fa-bullhorn" style="color: #a3e635;"></i>
-        <div>Updates and News</div>
-      </a>
-
-      {% if session.get('is_admin') %}
-        <a class="card-wide" href="/live_dashboard">
-          <i class="fas fa-chart-line"></i>
-          <div>Live System Monitor & SOS (Admin Only)</div>
-        </a>
-      {% endif %}
+      <div class="dw-hero-badge-card">
+        <div class="dw-hero-badge-header">People • Data • Action</div>
+        <h3 class="dw-hero-badge-title">Early Warnings Save Lives</h3>
+        <div class="dw-hero-badge-footer">
+          <i class="fas fa-leaf"></i> Build resilient communities together.
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <script>
-    function acknowledgePost(postId) {
-      fetch(`/news/like/${postId}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-          if(data.status === 'success') {
-            const btn = document.getElementById(`btn-${postId}`);
-            const countSpan = document.getElementById(`count-${postId}`);
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Acknowledged';
-            btn.style.background = '#a3e635';
-            btn.style.color = '#0d141c';
-            btn.disabled = true;
-            countSpan.innerText = parseInt(countSpan.innerText) + 1;
-          }
-        });
-    }
-  </script>
+  <!-- 5 Hazard Prediction Cards Section -->
+  <section class="dw-section" id="hazards">
+    <div class="dw-hazards-grid">
+      <!-- Flood -->
+      <a href="{{ url_for('flood_page') }}" class="dw-hazard-card hazard-flood">
+        <div class="dw-hazard-icon-wrapper">
+          <i class="fas fa-water"></i>
+        </div>
+        <div class="dw-hazard-name">Flood</div>
+        <div class="dw-hazard-desc">Predict flood risk using live weather & river hydrology data.</div>
+        <div class="dw-hazard-arrow">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </a>
+
+      <!-- Wildfire -->
+      <a href="{{ url_for('wildfire_page') }}" class="dw-hazard-card hazard-wildfire">
+        <div class="dw-hazard-icon-wrapper">
+          <i class="fas fa-fire"></i>
+        </div>
+        <div class="dw-hazard-name">Wildfire</div>
+        <div class="dw-hazard-desc">Assess wildfire probability, fuel dryness, and danger level.</div>
+        <div class="dw-hazard-arrow">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </a>
+
+      <!-- Cyclone -->
+      <a href="{{ url_for('cyclone_page') }}" class="dw-hazard-card hazard-cyclone">
+        <div class="dw-hazard-icon-wrapper">
+          <i class="fas fa-tornado"></i>
+        </div>
+        <div class="dw-hazard-name">Cyclone</div>
+        <div class="dw-hazard-desc">Track and predict cyclonic formation, barometric pressure, and intensity.</div>
+        <div class="dw-hazard-arrow">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </a>
+
+      <!-- Earthquake -->
+      <a href="{{ url_for('earthquake_page') }}" class="dw-hazard-card hazard-earthquake">
+        <div class="dw-hazard-icon-wrapper">
+          <i class="fas fa-mountain"></i>
+        </div>
+        <div class="dw-hazard-name">Earthquake</div>
+        <div class="dw-hazard-desc">Analyze seismic activity, fault distance, and subterranean friction.</div>
+        <div class="dw-hazard-arrow">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </a>
+
+      <!-- Landslide -->
+      <a href="{{ url_for('landslide_page') }}" class="dw-hazard-card hazard-landslide">
+        <div class="dw-hazard-icon-wrapper">
+          <i class="fas fa-hill-rockslide"></i>
+        </div>
+        <div class="dw-hazard-name">Landslide</div>
+        <div class="dw-hazard-desc">Estimate landslide risk based on terrain slope, soil type, and rainfall.</div>
+        <div class="dw-hazard-arrow">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </a>
+    </div>
+
+    <!-- Capabilities / Stats Bar -->
+    <div class="dw-stats-bar">
+      <div class="dw-stat-item">
+        <i class="fas fa-layer-group dw-stat-icon"></i>
+        <div>
+          <div class="dw-stat-title">5 Disaster Types</div>
+          <div class="dw-stat-subtitle">Predictive ML Models</div>
+        </div>
+      </div>
+
+      <div class="dw-stat-item">
+        <i class="fas fa-chart-line dw-stat-icon"></i>
+        <div>
+          <div class="dw-stat-title">Real-Time</div>
+          <div class="dw-stat-subtitle">Sensor & Satellite Monitoring</div>
+        </div>
+      </div>
+
+      <div class="dw-stat-item">
+        <i class="fas fa-shield-halved dw-stat-icon"></i>
+        <div>
+          <div class="dw-stat-title">AI Powered</div>
+          <div class="dw-stat-subtitle">Automated Risk Assessment</div>
+        </div>
+      </div>
+
+      <div class="dw-stat-item">
+        <i class="fas fa-bell dw-stat-icon"></i>
+        <div>
+          <div class="dw-stat-title">Instant Alerts</div>
+          <div class="dw-stat-subtitle">via WhatsApp & Broadcast</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Location Risk Check -->
+    <div class="dw-search-card">
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 4px; color: #fff;">
+          <i class="fas fa-location-crosshairs" style="color: #38bdf8; margin-right: 8px;"></i>
+          Check Risk for Any Location
+        </h4>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          Enter a city name to get live atmospheric telemetry and all-hazard risk predictions.
+        </p>
+      </div>
+
+      <form action="/predict_all" method="POST" class="dw-search-form">
+        <div class="dw-input-group">
+          <i class="fas fa-location-dot dw-input-icon"></i>
+          <input type="text" name="city" required class="dw-input-text" placeholder="Enter city name (e.g., Chennai, Mumbai, Tokyo)">
+        </div>
+        <button type="submit" class="btn-analyze">
+          <i class="fas fa-magnifying-glass"></i> Analyze
+        </button>
+      </form>
+    </div>
+
+    <!-- Split Section: Preparedness Banner + Latest News Widget -->
+    <div class="dw-split-grid" id="about">
+      <!-- Feature Visual Card -->
+      <div class="dw-feature-banner">
+        <h3>Preparedness Today, Safety Tomorrow.</h3>
+        <p>
+          Leveraging state-of-the-art predictive artificial intelligence to minimize casualties, streamline emergency response, and protect high-risk communities across the globe.
+        </p>
+      </div>
+
+      <!-- Latest News & Updates Widget -->
+      <div class="dw-news-widget">
+        <div class="dw-news-header">
+          <h3>Latest News & Updates</h3>
+          <a href="/news" class="dw-link-viewall">
+            View All <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+
+        <div class="dw-news-list">
+          {% if posts %}
+            {% for post in posts[:3] %}
+              <a href="/news" class="dw-news-item">
+                {% if post.image %}
+                  <img src="{{ url_for('static', filename='uploads/' + post.image) }}" class="dw-news-thumb" alt="{{ post.title }}">
+                {% else %}
+                  <img src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=200&q=80" class="dw-news-thumb" alt="News Image">
+                {% endif %}
+                <div class="dw-news-body">
+                  <div class="dw-news-badge-title">
+                    <span class="badge-hazard badge-flood">UPDATE</span>
+                    <div class="dw-news-item-title">{{ post.title }}</div>
+                  </div>
+                  <div class="dw-news-item-date">{{ post.time }}</div>
+                </div>
+              </a>
+            {% endfor %}
+          {% else %}
+            <!-- Default Curated News Items matching reference design -->
+            <a href="/news" class="dw-news-item">
+              <img src="https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=200&q=80" class="dw-news-thumb" alt="Heavy rainfall in Tamil Nadu">
+              <div class="dw-news-body">
+                <div class="dw-news-badge-title">
+                  <span class="badge-hazard badge-flood">FLOOD</span>
+                  <div class="dw-news-item-title">Heavy rainfall expected in coastal Tamil Nadu</div>
+                </div>
+                <div class="dw-news-item-date">Sep 15, 2026 • IMD issues orange alert for several districts</div>
+              </div>
+            </a>
+
+            <a href="/news" class="dw-news-item">
+              <img src="https://images.unsplash.com/photo-1527482797697-8795b05a13fe?auto=format&fit=crop&w=200&q=80" class="dw-news-thumb" alt="Wildfire alert">
+              <div class="dw-news-body">
+                <div class="dw-news-badge-title">
+                  <span class="badge-hazard badge-wildfire">WILDFIRE</span>
+                  <div class="dw-news-item-title">Forest fire risk increases due to high temperatures</div>
+                </div>
+                <div class="dw-news-item-date">Sep 14, 2026 • Elevated warning for dry woodland corridors</div>
+              </div>
+            </a>
+
+            <a href="/news" class="dw-news-item">
+              <img src="https://images.unsplash.com/photo-1505672678857-8f9370d4d0a5?auto=format&fit=crop&w=200&q=80" class="dw-news-thumb" alt="Cyclone tracking">
+              <div class="dw-news-body">
+                <div class="dw-news-badge-title">
+                  <span class="badge-hazard badge-cyclone">CYCLONE</span>
+                  <div class="dw-news-item-title">Cyclone formation likely in Bay of Bengal</div>
+                </div>
+                <div class="dw-news-item-date">Sep 13, 2026 • Low pressure system intensifying over sea</div>
+              </div>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Trust / Benefit Cards -->
+    <div class="dw-benefits-grid">
+      <div class="dw-benefit-item">
+        <i class="fas fa-shield-heart dw-benefit-icon"></i>
+        <div class="dw-benefit-text">
+          <h4>Early Warnings Save Lives</h4>
+          <p>Proactive AI forecasting allows early evacuation and mitigation.</p>
+        </div>
+      </div>
+
+      <div class="dw-benefit-item">
+        <i class="fas fa-users-gear dw-benefit-icon"></i>
+        <div class="dw-benefit-text">
+          <h4>Informed Communities</h4>
+          <p>Building resilience through verified telemetry and community updates.</p>
+        </div>
+      </div>
+
+      <div class="dw-benefit-item">
+        <i class="fas fa-brain dw-benefit-icon"></i>
+        <div class="dw-benefit-text">
+          <h4>Smarter Decisions</h4>
+          <p>Data-driven decision making for emergency personnel and citizens.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="dw-footer">
+    <div>
+      © 2026 DisasterWatch. All rights reserved. Built for safer, resilient communities.
+    </div>
+    <div class="dw-footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+      <a href="/login"><i class="fas fa-lock"></i> Admin</a>
+    </div>
+  </footer>
 
 </body>
 </html>

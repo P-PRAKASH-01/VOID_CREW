@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publish Emergency Advisory - Admin Console</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body style="min-height: 100vh; display: flex; flex-direction: column;">
+
+  <!-- Navigation Bar -->
+  {% include 'navbar.html' %}
+
+  <!-- Main Container -->
+  <main style="flex: 1; padding: 40px 20px; display: flex; justify-content: center; align-items: flex-start;">
+    <div class="dw-form-card" style="max-width: 720px; width: 100%; padding: 36px;">
+      
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; border-bottom: 1px solid var(--border-light); padding-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 22px;">
+            <i class="fas fa-bullhorn"></i>
+          </div>
+          <div>
+            <h1 style="font-size: 22px; font-weight: 700; color: #fff; margin: 0 0 4px 0;">Publish Official Emergency Advisory</h1>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Broadcast verified emergency directives to citizens and response units</p>
+          </div>
+        </div>
+        <a href="/admin" class="btn-glass" style="font-size: 13px; padding: 8px 14px;">
+          <i class="fas fa-arrow-left"></i> Admin Console
+        </a>
+      </div>
+
+      {% if error %}
+        <div style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.4); color: #fb7185; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 13.5px; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-circle-exclamation"></i>
+          <span>{{ error }}</span>
+        </div>
+      {% endif %}
+
+      <form action="/admin/create_post" method="POST" enctype="multipart/form-data">
+        <!-- Hazard Category & Severity Row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 18px;">
+          <div>
+            <label style="font-size: 13px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px;">
+              <i class="fas fa-triangle-exclamation" style="color: #f59e0b; margin-right: 6px;"></i> Hazard Classification
+            </label>
+            <select name="hazard_type" required class="dw-input-text" style="padding-left: 14px;">
+              <option value="FLOOD">🌊 Flood / Hydrological Surge</option>
+              <option value="WILDFIRE">🔥 Wildfire / High Heat</option>
+              <option value="CYCLONE">🌀 Cyclone / Coastal Gale</option>
+              <option value="EARTHQUAKE">⛰️ Earthquake / Seismic Shock</option>
+              <option value="LANDSLIDE">🪨 Landslide / Slope Failure</option>
+              <option value="GENERAL" selected>📢 General Civil Advisory</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 13px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px;">
+              <i class="fas fa-gauge-high" style="color: #f43f5e; margin-right: 6px;"></i> Severity Level
+            </label>
+            <select name="severity" required class="dw-input-text" style="padding-left: 14px;">
+              <option value="Information">ℹ️ Information Advisory</option>
+              <option value="Watch">⚠️ Hazard Watch</option>
+              <option value="Warning" selected>🚨 Emergency Warning</option>
+              <option value="Red Alert">🛑 Critical Red Alert</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Alert Title -->
+        <div style="margin-bottom: 18px;">
+          <label style="font-size: 13px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px;">
+            <i class="fas fa-heading" style="color: #38bdf8; margin-right: 6px;"></i> Advisory Headline
+          </label>
+          <input type="text" name="title" required placeholder="e.g. Flash Flood Red Alert: Coastal Evacuation Routes Open" class="dw-input-text" style="padding-left: 14px; font-size: 14.5px;">
+        </div>
+
+        <!-- Content -->
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 13px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px;">
+            <i class="fas fa-align-left" style="color: #a78bfa; margin-right: 6px;"></i> Detailed Directives & Advisory Information
+          </label>
+          <textarea name="content" required rows="6" placeholder="Specify affected sectors, active emergency shelters, safe evacuation corridors, contact numbers, and civil defense instructions..." class="dw-comm-textarea" style="padding: 14px; font-size: 13.5px;"></textarea>
+        </div>
+
+        <!-- Image Upload -->
+        <div style="margin-bottom: 24px; background: rgba(255, 255, 255, 0.03); border: 1px dashed var(--border-light); padding: 18px; border-radius: var(--radius-sm);">
+          <label style="font-size: 13px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 6px;">
+            <i class="fas fa-image" style="color: #34d399; margin-right: 6px;"></i> Attach Satellite Image / Hazard Map / Photo (Optional)
+          </label>
+          <input type="file" name="image" accept="image/*" style="font-size: 13px; color: var(--text-muted);">
+          <p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0 0;">Supported formats: JPG, PNG, WEBP, AVIF. Max 10MB.</p>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+          <a href="/admin" class="btn-glass" style="padding: 10px 20px;">
+            Cancel
+          </a>
+          <button type="submit" class="btn-primary" style="padding: 11px 26px; font-size: 14px;">
+            <i class="fas fa-paper-plane"></i> Publish Advisory
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </main>
+
+  <footer class="dw-footer">
+    <div>© 2026 DisasterWatch Emergency Management System. All rights reserved.</div>
+  </footer>
+
+</body>
+</html>

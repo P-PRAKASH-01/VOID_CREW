@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Safety & Response Hub - DisasterWatch</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Citizen Hub Specific Aesthetics */
+    .citizen-hero-card {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(16, 185, 129, 0.12) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      backdrop-filter: blur(14px);
+    }
+    .citizen-badge-role {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    .citizen-tab-btn {
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+    .citizen-tab-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+    }
+    .helpline-card {
+      background: rgba(18, 26, 43, 0.8);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .helpline-card:hover {
+      transform: translateY(-2px);
+      border-color: #38bdf8;
+      background: rgba(26, 38, 64, 0.9);
+    }
+    .helpline-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .helpline-num {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--font-mono);
+    }
+    .helpline-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .checklist-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .checklist-item input {
+      width: 18px;
+      height: 18px;
+      accent-color: #10b981;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  {% include 'navbar.html' %}
+
+  <!-- Main Container -->
+  <div class="dw-section" style="max-width: 1240px; padding-top: 24px; padding-bottom: 60px;">
+    
+    <!-- Citizen Welcome Hero Card with Safety Check-In -->
+    <div class="citizen-hero-card">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: #38bdf8; letter-spacing: 0.5px; text-transform: uppercase;">
+            <i class="fas fa-location-dot"></i> Sector: {{ session.get('location', 'Chennai Metro') }}
+          </span>
+          <span style="color: var(--border-light);">•</span>
+          <span style="font-size: 12px; color: var(--text-muted);">Real-time Citizen Safety Network</span>
+        </div>
+        <h1 style="font-size: 26px; font-weight: 800; color: #fff; margin: 0 0 8px 0;">
+          Welcome back, {{ session.get('user_name', 'Citizen') }}
+        </h1>
+        <p style="font-size: 14px; color: var(--text-sub); margin: 0; max-width: 620px; line-height: 1.5;">
+          Access verified emergency bulletins, declare your safety status, report local street hazards, and connect instantly with civil defense first responders.
+        </p>
+      </div>
+
+      <!-- Mark Myself Safe Toggle -->
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-light); padding: 18px 22px; border-radius: var(--radius-sm); text-align: center; min-width: 250px;">
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">
+          EMERGENCY SAFETY DECLARATION
+        </div>
+        <button type="button" id="btnToggleSafe" onclick="toggleSafetyCheck()" class="btn-primary" style="background: {% if session.get('is_safe') %}#10b981{% else %}rgba(56, 189, 248, 0.15){% endif %}; color: {% if session.get('is_safe') %}#04111d{% else %}#38bdf8{% endif %}; border-color: #10b981; width: 100%; justify-content: center; padding: 10px 18px;">
+          <i class="fas fa-{% if session.get('is_safe') %}circle-check{% else %}shield-heart{% endif %}"></i>
+          <span id="safeBtnText">{% if session.get('is_safe') %}Marked Safe & Accounted For{% else %}Mark Myself Safe{% endif %}</span>
+        </button>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 8px;">
+          Notifies emergency registries of your status
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Notice if Report was just submitted -->
+    {% if request.args.get('report_submitted') %}
+      <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 14px 20px; border-radius: var(--radius-sm); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <i class="fas fa-circle-check" style="font-size: 20px;"></i>
+          <div>
+            <strong>Hazard Incident Report Submitted!</strong><br>
+            <span style="font-size: 13px;">Our Emergency Operations Command has received your report for triage and responder deployment.</span>
+          </div>
+        </div>
+        <a href="/user" style="color: #fff; font-size: 13px;"><i class="fas fa-xmark"></i></a>
+      </div>
+    {% endif %}
+
+    <!-- 2 Column Layout: Left Column = Official Advisories & Incident Form; Right Column = Helplines & Shelters -->
+    <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 24px; align-items: flex-start;">
+      
+      <!-- LEFT COLUMN -->
+      <div>
+        
+        <!-- Official Advisories Section -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-light); padding-bottom: 14px;">
+            <div>
+              <h2 style="font-size: 19px; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-satellite-dish" style="color: #38bdf8;"></i> Official Emergency Advisories
+              </h2>
+              <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">
+                Verified bulletins published by Civil Defense and Disaster Command
+              </p>
+            </div>
+            <a href="/news" class="btn-glass" style="font-size: 12.5px; padding: 6px 14px;">
+              View All <i class="fas fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 18px;">
+            {% if posts %}
+              {% for post in posts[:3] %}
+                <div style="background: rgba(14, 22, 38, 0.7); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 20px;">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px;">
+                    <div>
+                      <span class="badge-hazard badge-flood" style="font-size: 11px; padding: 2px 8px; margin-right: 6px;">{{ post.hazard_type }}</span>
+                      <span style="font-size: 11.5px; color: #fb7185; font-weight: 700; text-transform: uppercase;">{{ post.severity }}</span>
+                      <h3 style="font-size: 17px; font-weight: 700; color: #fff; margin: 6px 0 0 0;">{{ post.title }}</h3>
+                    </div>
+                    <span style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+                      <i class="far fa-clock" style="color: #38bdf8;"></i> {{ post.time }}
+                    </span>
+                  </div>
+
+                  {% if post.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + post.image) }}" alt="{{ post.title }}" style="width: 100%; max-height: 260px; object-fit: cover; border-radius: 6px; margin: 10px 0 14px 0; border: 1px solid var(--border-light);">
+                  {% endif %}
+
+                  <p style="font-size: 13.5px; color: var(--text-sub); line-height: 1.6; margin: 0 0 16px 0;">
+                    {{ post.content }}
+                  </p>
+
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 12px;">
+                    <span style="font-size: 12.5px; color: var(--text-muted);">
+                      <i class="fas fa-check-double" style="color: #10b981;"></i>
+                      <strong id="post-ack-count-{{ post.id }}">{{ post.likes }}</strong> Citizens Acknowledged
+                    </span>
+
+                    <button type="button" id="ack-btn-{{ post.id }}" onclick="citizenAcknowledge({{ post.id }})" class="btn-glass" style="padding: 6px 14px; font-size: 12.5px; color: #34d399; border-color: rgba(16, 185, 129, 0.3);">
+                      <i class="fas fa-thumbs-up"></i> Acknowledge Directive
+                    </button>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div style="text-align: center; padding: 36px 16px; background: rgba(255, 255, 255, 0.02); border-radius: var(--radius-sm); border: 1px dashed var(--border-light);">
+                <i class="fas fa-shield-halved" style="color: #34d399; font-size: 32px; margin-bottom: 10px;"></i>
+                <h4 style="font-size: 16px; color: #fff; margin: 0 0 4px 0;">No Active Severe Hazard Warnings</h4>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">All sector telemetry indicates normal environmental conditions. Stay alert for updates.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Community Hazard Reporting Form -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; border-bottom: 1px solid var(--border-light); padding-bottom: 14px;">
+            <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+              <i class="fas fa-bullhorn"></i>
+            </div>
+            <div>
+              <h2 style="font-size: 18px; font-weight: 700; color: #fff; margin: 0;">
+                Report an Active Hazard in Your Neighborhood
+              </h2>
+              <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
+                Crowdsource street flooding, fallen power lines, or slope collapses directly to emergency dispatchers.
+              </p>
+            </div>
+          </div>
+
+          <form action="/user/submit_report" method="POST">
+            <input type="hidden" name="reporter_name" value="{{ session.get('user_name', 'Citizen Resident') }}">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+              <div>
+                <label style="font-size: 12.5px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 600;">Hazard Type</label>
+                <select name="hazard_type" required class="dw-input-text" style="padding-left: 12px; font-size: 13px;">
+                  <option value="Street Flooding">🌊 Severe Street Flooding</option>
+                  <option value="Tree / Line Down">⚡ Fallen Tree / Electric Cable</option>
+                  <option value="Fire / Smoke">🔥 Fire / Dense Smoke Outbreak</option>
+                  <option value="Landslide Debris">🪨 Mudslide / Road Obstruction</option>
+                  <option value="Structural Damage">🏚️ Building / Bridge Damage</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 12.5px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 600;">Estimated Severity</label>
+                <select name="severity" required class="dw-input-text" style="padding-left: 12px; font-size: 13px;">
+                  <option value="Low">Low (Inconvenience / Minor)</option>
+                  <option value="Medium" selected>Medium (Road blocked / Alert)</option>
+                  <option value="High">High (Immediate danger to life)</option>
+                  <option value="Critical">Critical (People trapped)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+              <label style="font-size: 12.5px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 600;">Exact Location / Landmark</label>
+              <input type="text" name="location" required placeholder="e.g. Near Velachery Railway Bridge, Main Road" class="dw-input-text" style="padding-left: 14px; font-size: 13.5px;">
+            </div>
+
+            <div style="margin-bottom: 18px;">
+              <label style="font-size: 12.5px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 600;">Observations & Critical Details</label>
+              <textarea name="description" required rows="3" placeholder="Describe water depth, trapped vehicles, blocked lanes, or urgent rescue requirements..." class="dw-comm-textarea" style="padding: 12px; font-size: 13px;"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 11px; font-size: 14px;">
+              <i class="fas fa-paper-plane"></i> Submit Incident Report to Command Center
+            </button>
+          </form>
+
+          <!-- Citizen's Recent Incident History -->
+          {% if reports %}
+            <div style="margin-top: 24px; border-top: 1px solid var(--border-light); padding-top: 16px;">
+              <h4 style="font-size: 14px; color: var(--text-muted); margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                Community Reports in Your Area
+              </h4>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                {% for r in reports %}
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; font-size: 12.5px;">
+                    <div>
+                      <strong style="color: #fff;">{{ r.hazard_type }}</strong> • {{ r.location }}
+                      <span style="font-size: 11px; color: var(--text-muted); display: block;">{{ r.time }}</span>
+                    </div>
+                    <span style="padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: {% if r.status == 'Verified' %}rgba(56, 189, 248, 0.15); color: #38bdf8;{% elif r.status == 'Dispatched Responders' %}rgba(168, 85, 247, 0.15); color: #c084fc;{% elif r.status == 'Resolved' %}rgba(16, 185, 129, 0.15); color: #34d399;{% else %}rgba(245, 158, 11, 0.15); color: #fbbf24;{% endif %}">
+                      {{ r.status }}
+                    </span>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Helplines, WhatsApp SOS, Shelters, Checklist -->
+      <div>
+        
+        <!-- Emergency Helpline Quick Dial -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 22px; margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-phone-volume" style="color: #f43f5e;"></i>
+            Emergency One-Tap Helplines
+          </h3>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <a href="tel:112" class="helpline-card">
+              <div class="helpline-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                <i class="fas fa-life-ring"></i>
+              </div>
+              <div>
+                <div class="helpline-num">112</div>
+                <div class="helpline-label">National SOS</div>
+              </div>
+            </a>
+
+            <a href="tel:108" class="helpline-card">
+              <div class="helpline-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                <i class="fas fa-truck-medical"></i>
+              </div>
+              <div>
+                <div class="helpline-num">108</div>
+                <div class="helpline-label">Ambulance</div>
+              </div>
+            </a>
+
+            <a href="tel:101" class="helpline-card">
+              <div class="helpline-icon" style="background: rgba(249, 115, 22, 0.15); color: #f97316;">
+                <i class="fas fa-fire-extinguisher"></i>
+              </div>
+              <div>
+                <div class="helpline-num">101</div>
+                <div class="helpline-label">Fire Rescue</div>
+              </div>
+            </a>
+
+            <a href="tel:1070" class="helpline-card">
+              <div class="helpline-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                <i class="fas fa-tower-broadcast"></i>
+              </div>
+              <div>
+                <div class="helpline-num">1070</div>
+                <div class="helpline-label">Disaster Relief</div>
+              </div>
+            </a>
+          </div>
+
+          <!-- Direct WhatsApp SOS button -->
+          <div style="margin-top: 14px;">
+            <button type="button" class="btn-whatsapp" onclick="sendCitizenSos()" style="width: 100%; justify-content: center; padding: 11px;">
+              <i class="fab fa-whatsapp"></i> Send My SOS via WhatsApp
+            </button>
+          </div>
+        </div>
+
+        <!-- Evacuation Shelters Directory -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 22px; margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-person-shelter" style="color: #10b981;"></i>
+            Verified Evacuation Shelters
+          </h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+            Equipped with food, generator power, medical aid, and drinking water.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: #fff;">Community Center Hall #1</strong>
+                <span style="font-size: 11px; color: #34d399; font-weight: 600;">OPEN • 450 Cap.</span>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                <i class="fas fa-location-dot" style="color: #38bdf8;"></i> Gandhi Nagar Main, Sector 4 (1.2 km away)
+              </div>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: #fff;">Government Higher Sec. School</strong>
+                <span style="font-size: 11px; color: #34d399; font-weight: 600;">OPEN • 800 Cap.</span>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                <i class="fas fa-location-dot" style="color: #38bdf8;"></i> High Ground Road, Anna Nagar (2.5 km away)
+              </div>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: #fff;">St. Thomas Relief Campus</strong>
+                <span style="font-size: 11px; color: #fbbf24; font-weight: 600;">STANDBY • 300 Cap.</span>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                <i class="fas fa-location-dot" style="color: #38bdf8;"></i> Mount Road Bypass (3.8 km away)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preparedness Go-Bag Checklist -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 22px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-suitcase-medical" style="color: #a78bfa;"></i>
+              Go-Bag Preparedness Checklist
+            </h3>
+            <span id="checklistProgress" style="font-size: 12px; font-weight: 700; color: #34d399;">2/5 Ready</span>
+          </div>
+
+          <div>
+            <label class="checklist-item">
+              <input type="checkbox" checked onchange="updateChecklist()">
+              <span style="font-size: 13px; color: var(--text-sub);">3-Day Clean Drinking Water (3L / person)</span>
+            </label>
+
+            <label class="checklist-item">
+              <input type="checkbox" checked onchange="updateChecklist()">
+              <span style="font-size: 13px; color: var(--text-sub);">First Aid Kit & Essential Medicines</span>
+            </label>
+
+            <label class="checklist-item">
+              <input type="checkbox" onchange="updateChecklist()">
+              <span style="font-size: 13px; color: var(--text-sub);">Charged Mobile Power Bank & Cables</span>
+            </label>
+
+            <label class="checklist-item">
+              <input type="checkbox" onchange="updateChecklist()">
+              <span style="font-size: 13px; color: var(--text-sub);">Waterproof Bag for ID & Important Documents</span>
+            </label>
+
+            <label class="checklist-item">
+              <input type="checkbox" onchange="updateChecklist()">
+              <span style="font-size: 13px; color: var(--text-sub);">LED Flashlight / Whistle for Signaling</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="dw-footer">
+    <div>© 2026 DisasterWatch Public Safety Initiative. All rights reserved.</div>
+    <div class="dw-footer-links">
+      <a href="/">Home</a>
+      <a href="/news">Official Bulletins</a>
+      <a href="/all-in-one">AI Telemetry</a>
+    </div>
+  </footer>
+
+  <script>
+    function citizenAcknowledge(postId) {
+      fetch(`/news/like/${postId}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const btn = document.getElementById(`ack-btn-${postId}`);
+            const count = document.getElementById(`post-ack-count-${postId}`);
+            if (btn) {
+              btn.innerHTML = '<i class="fas fa-check-circle"></i> Acknowledged';
+              btn.style.background = '#10b981';
+              btn.style.color = '#000';
+              btn.disabled = true;
+            }
+            if (count) {
+              count.innerText = parseInt(count.innerText) + 1;
+            }
+          }
+        });
+    }
+
+    function toggleSafetyCheck() {
+      fetch('/user/toggle_safe', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          const btn = document.getElementById('btnToggleSafe');
+          const txt = document.getElementById('safeBtnText');
+          if (data.is_safe) {
+            btn.style.background = '#10b981';
+            btn.style.color = '#04111d';
+            txt.innerText = 'Marked Safe & Accounted For';
+          } else {
+            btn.style.background = 'rgba(56, 189, 248, 0.15)';
+            btn.style.color = '#38bdf8';
+            txt.innerText = 'Mark Myself Safe';
+          }
+        });
+    }
+
+    function sendCitizenSos() {
+      const name = "{{ session.get('user_name', 'Citizen') }}";
+      const loc = "{{ session.get('location', 'Chennai Metro') }}";
+      const msg = `🚨 URGENT SOS from ${name}!\nI require emergency disaster assistance at location: ${loc}.\nPlease dispatch emergency rescue teams immediately.`;
+      
+      // Log emergency beacon to command center database
+      fetch('/api/citizen/sos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location: loc, details: msg })
+      }).catch(err => console.error('Distress beacon sync:', err));
+
+      // Open citizen's WhatsApp directly
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+
+    function updateChecklist() {
+      const checkboxes = document.querySelectorAll('.checklist-item input');
+      let checked = 0;
+      checkboxes.forEach(c => { if (c.checked) checked++; });
+      document.getElementById('checklistProgress').innerText = `${checked}/${checkboxes.length} Ready`;
+    }
+  </script>
+</body>
+</html>
